@@ -1,0 +1,46 @@
+@import "tailwindcss";
+
+/* ── 노션 인생게임 테마 ─────────────────────────────── */
+:root {
+  --bg:        #F5F0E8;   /* 아이보리 */
+  --primary:   #7BAE7F;   /* 이끼 그린 */
+  --gold:      #C4A35A;   /* 흙빛 골드 */
+  --brown:     #5C4033;   /* 다크 브라운 */
+  --brown-mid: #8B6914;
+  --brown-lt:  #A0845C;
+  --cream:     #E8D5A3;
+  --accent:    #9FC5E8;   /* 안개 민트 */
+}
+
+/* 위젯 공통 배경 */
+.widget-bg {
+  background: var(--bg);
+  font-family: 'Segoe UI', 'Apple SD Gothic Neo', sans-serif;
+}
+
+/* 버튼 */
+.btn-primary {
+  background: var(--primary);
+  color: white;
+  border-radius: 0.75rem;
+  padding: 0.5rem 1rem;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+.btn-primary:hover {
+  background: #5a8f5e;
+}
+
+body {
+  background: var(--bg);
+  color: var(--brown);
+  font-family: 'Segoe UI', 'Apple SD Gothic Neo', sans-serif;
+}
+
+/* 위젯은 다크모드 무시 (노션 embed는 항상 라이트) */
+@media (prefers-color-scheme: dark) {
+  .widget-bg {
+    background: var(--bg) !important;
+    color: var(--brown) !important;
+  }
+}
