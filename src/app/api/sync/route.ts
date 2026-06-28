@@ -24,15 +24,23 @@ export async function POST(req: NextRequest) {
     const dbIds  = user.db_ids as NotionDatabaseIds
     const today  = new Date().toISOString().split('T')[0]
 
-    // 1. 루틴 DB에서 "오늘 완료" 체크된 항목 조회
-    const routineRes = await notion.databases.query({
+    // 1. 루틴 DB 전체 조회 후 코드에서 체크박스 확인
+    //    (필터 방식은 속성명 불일치 오류 가능성 있음)
+    const allRoutinesRes = await notion.databases.query({
       database_id: dbIds.routines,
-      filter: {
-        property: '오늘 완료',
-        checkbox: { equals: true },
-      },
-      page_size: 50,
-    }).catch(() => ({ results: [] })) // 필드 없으면 빈 배열
+      page_size: 100,
+    }).catch(() => ({ results: [] }))
+
+    // "오늘 완료" 또는 유사한 이름의 체크박스가 true인 것만 필터
+    const routineRes = {
+      results: (allRoutinesRes.results as any[]).filter(page => {
+        const props = page.properties
+        // 체크박스 타입인 속성 중 true인 것 찾기
+        return Object.values(props).some(
+          (prop: any) => prop.type === 'checkbox' && prop.checkbox === true
+        )
+      })
+    }
 
     // 2. 오늘 이미 처리된 완료 기록 조회 (중복 방지)
     const completionRes = await notion.databases.query({
@@ -99,13 +107,18 @@ export async function POST(req: NextRequest) {
         })
       )
 
-      // 루틴 체크박스 초기화 (내일 다시 사용)
-      routineResets.push(
-        notion.pages.update({
-          page_id: page.id,
-          properties: { '오늘 완료': { checkbox: false } },
-        })
-      )
+      // 루틴 체크박스 초기화 (내일 다시 사용) — 체크박스 타입 속성 모두 false로
+      const checkboxProps: Record<string, any> = {}
+      Object.entries(page.properties).forEach(([key, val]: [string, any]) => {
+        if (val.type === 'checkbox' && val.checkbox === true) {
+          checkboxProps[key] = { checkbox: false }
+        }
+      })
+      if (Object.keys(checkboxProps).length > 0) {
+        routineResets.push(
+          notion.pages.update({ page_id: page.id, properties: checkboxProps })
+        )
+      }
     }
 
     // 할일 XP 집계 (오늘 날짜 완료된 것 중 completions에 없는 것)
