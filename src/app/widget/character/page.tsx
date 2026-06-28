@@ -44,6 +44,8 @@ export default function CharacterWidget() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
+  const [syncing, setSyncing] = useState(false)
+  const [syncResult, setSyncResult] = useState<{ xp: number; gold: number; leveledUp: boolean } | null>(null)
 
   // URL에서 token 추출
   const token = typeof window !== 'undefined'
@@ -69,6 +71,28 @@ export default function CharacterWidget() {
       setLoading(false)
     }
   }, [token])
+
+  const handleSync = async () => {
+    if (!token || syncing) return
+    setSyncing(true)
+    setSyncResult(null)
+    try {
+      const res  = await fetch(`/api/sync?token=${token}`, { method: 'POST' })
+      const json = await res.json()
+      if (json.updated) {
+        setSyncResult({ xp: json.earnedXp, gold: json.earnedGold, leveledUp: json.leveledUp })
+        await fetchData()
+        setTimeout(() => setSyncResult(null), 4000)
+      } else {
+        setSyncResult({ xp: 0, gold: 0, leveledUp: false })
+        setTimeout(() => setSyncResult(null), 2000)
+      }
+    } catch {
+      // 에러 무시
+    } finally {
+      setSyncing(false)
+    }
+  }
 
   // 초기 로딩 + 60초마다 자동 갱신
   useEffect(() => {
@@ -144,7 +168,35 @@ export default function CharacterWidget() {
       {/* 스탯 패널 */}
       <StatsPanel stats={data.stats} />
 
-      {/* 갱신 버튼 + 마지막 업데이트 */}
+      {/* 동기화 버튼 */}
+      <button
+        onClick={handleSync}
+        disabled={syncing}
+        className={`
+          w-full py-2.5 rounded-xl font-semibold text-sm transition-all
+          ${syncing
+            ? 'bg-[#E8D5A3] text-[#A0845C] cursor-wait'
+            : 'bg-[#7BAE7F] text-white hover:bg-[#5a8f5e] active:scale-95'
+          }
+        `}
+      >
+        {syncing ? '동기화 중...' : '✨ XP 동기화'}
+      </button>
+
+      {/* 동기화 결과 */}
+      {syncResult && (
+        <div className={`
+          text-center text-sm font-semibold py-2 rounded-xl transition-all
+          ${syncResult.xp > 0 ? 'bg-[#C8E6C9] text-[#2E7D32]' : 'bg-[#F5F0E8] text-[#A0845C]'}
+        `}>
+          {syncResult.xp > 0
+            ? `+${syncResult.xp} XP  +${syncResult.gold} 🪙${syncResult.leveledUp ? '  🎉 레벨업!' : ''}`
+            : '새로 완료된 루틴 없음'
+          }
+        </div>
+      )}
+
+      {/* 마지막 업데이트 */}
       <div className="flex items-center justify-between text-xs text-[#A0845C]">
         <span>
           {lastUpdated ? `${lastUpdated.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })} 업데이트` : ''}
