@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
         date: { equals: today },
       },
       page_size: 100,
-    })
+    }).catch(() => ({ results: [] }))
 
     const processedTitles = new Set(
       completionRes.results.map((p: any) =>

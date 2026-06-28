@@ -43,7 +43,18 @@ export async function GET(req: NextRequest) {
       result.routines_error = e.message
     }
 
-    // 3. 캐릭터 DB 조회 테스트
+    // 3. completions DB 조회 테스트
+    try {
+      const completions = await notion.databases.query({
+        database_id: dbIds.completions,
+        page_size: 1,
+      })
+      result.completions = { accessible: true, count: completions.results.length }
+    } catch (e: any) {
+      result.completions_error = e.message
+    }
+
+    // 4. 캐릭터 DB 조회 테스트
     try {
       const char = await notion.databases.query({
         database_id: dbIds.character,
